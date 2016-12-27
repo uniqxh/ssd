@@ -1,4 +1,5 @@
 #include "myepoll.h"
+#include<fcntl.h>
 #include<sys/socket.h>
 #include<string.h>
 #include<stdio.h>
@@ -33,8 +34,13 @@ int myepoll::mylisten(){
     return listen(listenfd, 10);
 }
 
+void myepoll::setnonblock(int fd){
+	fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK, 0);
+}
+
 void myepoll::do_epoll(){
-    epollfd = epoll_create(10);
+    epollfd = epoll_create1(0);
+	setnonblock(listenfd);
     add_event(listenfd, EPOLLIN);
     int ret;
     while(1){
@@ -61,12 +67,15 @@ void myepoll::handle_events(int num){
 void myepoll::handle_accept(){
     struct sockaddr_in addr;
     socklen_t len;
-    int ret = accept(listenfd, (struct sockaddr*)&addr, &len);
-    if(ret == -1){
+	sleep(3);
+	printf("sleep 3s\n");
+    int fd = accept(listenfd, (struct sockaddr*)&addr, &len);
+    if(fd == -1){
         perror("accept error:");
     }else{
-        printf("accept a new client[%d]: %s:%d\n", ret, inet_ntoa(addr.sin_addr), addr.sin_port);
-        add_event(ret, EPOLLIN);
+        printf("accept a new client[%d]: %s:%d\n", fd, inet_ntoa(addr.sin_addr), addr.sin_port);
+		setnonblock(fd);
+        add_event(fd, EPOLLIN | EPOLLET);
     }
 }
 

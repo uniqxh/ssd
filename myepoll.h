@@ -19,6 +19,8 @@ class myepoll{
 
         int mylisten();
 
+		void setnonblock(int fd);
+
         void handle_events(int num);
 
         void handle_accept();
